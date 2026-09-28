@@ -1,0 +1,319 @@
+// ════════════════════════════════════════
+// js/boss3d.js — Boss mechanics
+// The three bosses (jungle gorilla, tundra yeti, aquatic octopus) get
+// telegraphed attacks, projectiles, a slam AoE, and a health bar.
+// Called from the engine's enemy update + main loop.
+// ════════════════════════════════════════
+
+const BOSS_NAME = { miniBoss: '🦍 Jungle King', yeti: '⛄ Frost Yeti', octopus: '🐙 Deep Octopus', magma: '🌋 Magma Titan' };
+
+function bossBlocked(x, z) {
+  return isSolid(x, z) || (E.cfg && E.cfg.village && typeof tileAt === 'function' && tileAt(x, z) === 7); // village/camp is a safe zone
+}
+
+// Per-boss AI, replaces normal movement for boss enemies
+function updateBoss(en, dt, d, p, playerSafe) {
+  const m = en.mesh;
+  en.atkTimer = (en.atkTimer == null ? 2 : en.atkTimer) - dt;
+  if (en.mode !== 'jump') en.skipYBob = false;
+
+  if (en.mode === 'jump') {
+    en.skipYBob = true; // we control Y during the leap
+    en.jumpT += dt;
+    const t = Math.min(1, en.jumpT / en.jumpDur);
+    m.position.x = en.jumpStart.x + (en.jumpTarget.x - en.jumpStart.x) * t;
+    m.position.z = en.jumpStart.z + (en.jumpTarget.z - en.jumpStart.z) * t;
+    m.position.y = en.size + Math.sin(t * Math.PI) * 3.2; // arc up and down
+    en.dir.set(en.jumpTarget.x - en.jumpStart.x, 0, en.jumpTarget.z - en.jumpStart.z).normalize();
+    if (t >= 1) {
+      m.position.y = en.size; en.skipYBob = false;
+      spawnParticles(m.position, new THREE.Color(0xffffff), 22);
+      bossSlam(en, 3.0, 22); // landing shockwave
+      en.mode = 'idle'; en.atkTimer = 1.6 + Math.random();
+    }
+    return;
+  }
+
+  if (en.mode === 'charge') {
+    en.chargeTime -= dt;
+    const cv = en.chargeVel; let hitWall = false;
+    const nx = m.position.x + cv.x * dt, nz = m.position.z + cv.z * dt;
+    if (!bossBlocked(nx, m.position.z)) m.position.x = nx; else hitWall = true;
+    if (!bossBlocked(m.position.x, nz)) m.position.z = nz; else hitWall = true;
+    en.dir.set(cv.x, 0, cv.z).normalize();
+    if (en.chargeTime <= 0 || hitWall) {
+      en.mode = 'idle'; en.atkTimer = 1.6 + Math.random() * 1.2;
+      m.userData.body.material.emissiveIntensity = en.baseEmissive;
+      if (hitWall) { spawnParticles(m.position, new THREE.Color(0xffffff), 14); if (typeof SFX !== 'undefined') SFX.slam(); }
+    }
+    return;
+  }
+  if (en.mode === 'telegraph') {
+    en.tele -= dt;
+    m.scale.setScalar(1 + Math.sin(E.time * 32) * 0.07);
+    m.userData.body.material.emissiveIntensity = 1.6;
+    if (en.tele <= 0) { m.scale.setScalar(1); m.userData.body.material.emissiveIntensity = en.baseEmissive; startBossAttack(en, p); }
+    return;
+  }
+  // idle: if the player is safe, lose interest and drift away; else stalk + attack
+  if (playerSafe) {
+    en.dir.set(m.position.x - p.x, 0, m.position.z - p.z);
+    if (en.dir.length() < 0.01) en.dir.set(Math.random() - 0.5, 0, Math.random() - 0.5);
+    en.dir.normalize();
+    const s2 = en.speed * 0.4;
+    const ax = m.position.x + en.dir.x * s2 * dt, az = m.position.z + en.dir.z * s2 * dt;
+    if (!bossBlocked(ax, m.position.z)) m.position.x = ax;
+    if (!bossBlocked(m.position.x, az)) m.position.z = az;
+    en.atkTimer = Math.max(en.atkTimer, 0.8); // don't wind up an attack
+    return;
+  }
+  en.dir.set(p.x - m.position.x, 0, p.z - m.position.z).normalize();
+  const spd = en.speed * 0.5;
+  const nx = m.position.x + en.dir.x * spd * dt, nz = m.position.z + en.dir.z * spd * dt;
+  if (!bossBlocked(nx, m.position.z)) m.position.x = nx;
+  if (!bossBlocked(m.position.x, nz)) m.position.z = nz;
+  if (en.atkTimer <= 0) { en.mode = 'telegraph'; en.tele = 0.6; if (typeof SFX !== 'undefined') SFX.boss(); }
+}
+
+function bossPick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function bossReset(en, t) { en.mode = 'idle'; en.atkTimer = t + Math.random(); }
+
+// ── Attack pools (repeats = higher weight) ──────────────────────
+const BOSS_ATTACKS = {
+  miniBoss: [atkJump, atkJump, atkCharge, atkSlam, atkBananas, atkSummon],
+  yeti: [atkSnow, atkSnow, atkBigSnow, atkIceBurst, atkFrostStomp, atkCharge],
+  octopus: [atkInkRadial, atkInkSpiral, atkInkAimed, atkInkCloud, atkTentacleSlam, atkLunge],
+  magma: [atkMeteor, atkMeteor, atkFireRadial, atkFireSpread, atkCharge, atkJump, atkSlam]
+};
+
+// Magma Titan
+function atkMeteor(en, p) {
+  const m = en.mesh; if (typeof SFX !== 'undefined') SFX.slam();
+  spawnParticles(m.position.clone().add(new THREE.Vector3(0, 0.7, 0)), new THREE.Color(0xff7a1e), 14);
+  spawnBossLob(m.position, new THREE.Vector3(p.x, 0, p.z), 0xff5a1e, 0.7, 22, 1.9);
+  showToast('🌋 Meteor Strike!', 'A blazing rock is falling — move off the shadow!');
+  bossReset(en, 2.0);
+}
+function atkFireRadial(en) { bossRadial(en, 12, 0xff5a1e); bossReset(en, 1.5); }
+function atkFireSpread(en, p) { bossSpread(en, p, 4, 0xff7a2a, 6.5, 0.8); bossReset(en, 1.4); }
+
+function startBossAttack(en, p) { bossPick(BOSS_ATTACKS[en.species] || [atkSlam])(en, p); }
+
+// ── Shared attack primitives ────────────────────────────────────
+function atkCharge(en, p) {
+  const m = en.mesh, dir = new THREE.Vector3(p.x - m.position.x, 0, p.z - m.position.z).normalize();
+  en.chargeVel = dir.multiplyScalar(en.speed * 3.1); en.mode = 'charge'; en.chargeTime = 0.72;
+  if (typeof SFX !== 'undefined') SFX.charge();
+}
+function atkSlam(en) { bossSlam(en, 3.2, 20); bossReset(en, 1.6); }
+
+// Jungle King
+function atkJump(en, p) { startBossJump(en, p); } // atkTimer set on landing
+function atkBananas(en, p) { bossSpread(en, p, 5, 0xffdd33, 6.5, 0.7); bossReset(en, 1.5); }
+function atkSummon(en) { bossSummon(en, 2); bossReset(en, 2.2); }
+
+// Yeti
+function atkSnow(en, p) { bossSnow(en, p, 4); bossReset(en, 1.4); }
+function atkBigSnow(en, p) {
+  const m = en.mesh; if (typeof SFX !== 'undefined') SFX.slam();
+  spawnParticles(m.position.clone().add(new THREE.Vector3(0, 0.7, 0)), new THREE.Color(0xffffff), 16);
+  // Lob a huge snowball high into the air; it crashes down on the player's spot
+  // (faint icy-blue so it stays visible against the white tundra)
+  spawnBossLob(m.position, new THREE.Vector3(p.x, 0, p.z), 0xc4e2ff, 0.7, 24, 1.9);
+  showToast('⛄ Giant Snowball!', 'A huge snowball is falling — move off the shadow!');
+  bossReset(en, 2.1);
+}
+
+// A projectile that arcs up and crashes down on a target spot with AoE.
+// A shadow marks where it will land so the player can dodge.
+function spawnBossLob(from, target, color, radius, dmg, aoeR) {
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 14, 12),
+    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.3, roughness: 0.6 }));
+  mesh.castShadow = true; E.scene.add(mesh);
+  const shadow = new THREE.Mesh(new THREE.CircleGeometry(aoeR, 22),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.38 }));
+  shadow.rotation.x = -Math.PI / 2; shadow.position.set(target.x, 0.04, target.z); E.scene.add(shadow);
+  E.bossShots.push({
+    mesh, arc: true, dmg, aoeR, shadow, life: 5, vel: new THREE.Vector3(),
+    start: new THREE.Vector3(from.x, 0, from.z), target: new THREE.Vector3(target.x, 0, target.z),
+    t: 0, dur: 1.15, arcH: 5, r: radius
+  });
+}
+function atkIceBurst(en) { bossRadial(en, 12, 0x9fe0ff); bossReset(en, 1.5); }
+function atkFrostStomp(en) {
+  bossSlam(en, 4.2, 18);
+  for (let i = 0; i < 20; i++) { const a = i / 20 * Math.PI * 2; spawnParticles(en.mesh.position.clone().add(new THREE.Vector3(Math.cos(a) * 2, 0.2, Math.sin(a) * 2)), new THREE.Color(0xffffff), 3); }
+  bossReset(en, 1.7);
+}
+
+// Octopus
+function atkInkRadial(en) { bossRadial(en, 10, 0x8a3ab0); bossReset(en, 1.4); }
+function atkInkSpiral(en) { bossSpiral(en, 14, 0x9a4ac0); bossReset(en, 1.5); }
+function atkInkAimed(en, p) { bossSpread(en, p, 3, 0x8a3ab0, 6, 1); bossReset(en, 1.3); }
+function atkTentacleSlam(en) { bossSlam(en, 3.7, 16); bossReset(en, 1.5); }
+function atkInkCloud(en) {
+  if (typeof SFX !== 'undefined') SFX.slam();
+  spawnInkCloud(en.mesh.position, 14);
+  inkScreen();
+  showToast('🐙 Ink Cloud!', 'The octopus blinds you with a cloud of ink!');
+  bossReset(en, 1.9);
+}
+
+// Expanding dark ink cloud (small AoE) around a position
+function spawnInkCloud(pos, dmg) {
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 12),
+    new THREE.MeshStandardMaterial({ color: 0x150826, emissive: 0x2a0a3a, emissiveIntensity: 0.35, transparent: true, opacity: 0.85 }));
+  mesh.position.copy(pos); mesh.position.y = 0.8; E.scene.add(mesh);
+  E.bossShots.push({ mesh, cloud: true, t: 0, dur: 1.6, maxR: 3.2, dmg, hitDone: false, life: 2, vel: new THREE.Vector3(), target: new THREE.Vector3(pos.x, 0, pos.z) });
+}
+
+// Splat a dark ink overlay across the viewport that fades out (blinds briefly)
+function inkScreen() {
+  const o = document.getElementById('inkOverlay');
+  if (!o) return;
+  o.style.transition = 'opacity 0.15s';
+  o.style.opacity = '0.85';
+  clearTimeout(o._t);
+  o._t = setTimeout(() => { o.style.transition = 'opacity 2s'; o.style.opacity = '0'; }, 300);
+}
+function atkLunge(en, p) {
+  const m = en.mesh, dir = new THREE.Vector3(p.x - m.position.x, 0, p.z - m.position.z).normalize();
+  en.chargeVel = dir.multiplyScalar(en.speed * 4); en.mode = 'charge'; en.chargeTime = 0.6;
+  if (typeof SFX !== 'undefined') SFX.charge();
+}
+
+// Jungle King leap: hop into the air and crash down where the player was
+function startBossJump(en, p) {
+  const m = en.mesh;
+  // Don't leap into the safe zone — fall back to idle if the target is protected
+  if (bossBlocked(p.x, p.z)) { en.mode = 'idle'; en.atkTimer = 1 + Math.random(); return; }
+  en.mode = 'jump'; en.jumpT = 0; en.jumpDur = 0.78;
+  en.jumpStart = new THREE.Vector3(m.position.x, en.size, m.position.z);
+  en.jumpTarget = new THREE.Vector3(p.x, en.size, p.z);
+  if (typeof SFX !== 'undefined') SFX.charge();
+}
+
+// Yeti snowball volley
+function bossSnow(en, p, n) {
+  const m = en.mesh; if (typeof SFX !== 'undefined') SFX.shoot();
+  spawnParticles(m.position.clone().add(new THREE.Vector3(0, 0.6, 0)), new THREE.Color(0xffffff), 10);
+  const base = new THREE.Vector3(p.x - m.position.x, 0, p.z - m.position.z).normalize();
+  for (let i = 0; i < n; i++) {
+    const ang = (i - (n - 1) / 2) * 0.22;
+    const dir = base.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), ang);
+    spawnBossShot(m.position, dir.multiplyScalar(6), 0xffffff, 10, 0.35, 0.28);
+  }
+}
+
+function bossSlam(en, radius, dmg) {
+  const m = en.mesh;
+  if (typeof SFX !== 'undefined') SFX.slam();
+  for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; const pos = m.position.clone().add(new THREE.Vector3(Math.cos(a) * radius, 0.2, Math.sin(a) * radius)); spawnParticles(pos, new THREE.Color(0xffcc66), 3); }
+  if (E.player.position.distanceTo(m.position) < radius) hurtPlayer(dmg);
+}
+function bossThrow(en, p, n, color) {
+  const m = en.mesh; if (typeof SFX !== 'undefined') SFX.shoot();
+  const base = new THREE.Vector3(p.x - m.position.x, 0, p.z - m.position.z).normalize();
+  for (let i = 0; i < n; i++) { const ang = (i - (n - 1) / 2) * 0.26; const dir = base.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), ang); spawnBossShot(m.position, dir.multiplyScalar(6), color, 12); }
+}
+function bossRadial(en, n, color) {
+  const m = en.mesh; if (typeof SFX !== 'undefined') SFX.shoot();
+  for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; spawnBossShot(m.position, new THREE.Vector3(Math.cos(a), 0, Math.sin(a)).multiplyScalar(5), color, 10); }
+}
+// Aimed spread of projectiles toward the player
+function bossSpread(en, p, n, color, speed, emis) {
+  const m = en.mesh; if (typeof SFX !== 'undefined') SFX.shoot();
+  const base = new THREE.Vector3(p.x - m.position.x, 0, p.z - m.position.z).normalize();
+  for (let i = 0; i < n; i++) {
+    const ang = (i - (n - 1) / 2) * 0.2;
+    const dir = base.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), ang);
+    spawnBossShot(m.position, dir.multiplyScalar(speed || 6), color, 10, emis == null ? 1 : emis, 0.2);
+  }
+}
+// Rotating pinwheel of projectiles
+function bossSpiral(en, n, color) {
+  const m = en.mesh; if (typeof SFX !== 'undefined') SFX.shoot();
+  const off = (E.time % 1) * Math.PI * 2;
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2 + off, spd = 4 + (i % 3) * 0.6;
+    spawnBossShot(m.position, new THREE.Vector3(Math.cos(a), 0, Math.sin(a)).multiplyScalar(spd), color, 9, 1, 0.2);
+  }
+}
+// Jungle King summons a couple of monkey minions (capped)
+function bossSummon(en, count) {
+  if (typeof makeMonkeyMesh !== 'function') return;
+  if ((E.enemies || []).filter(e => e.species === 'monkeys').length >= 11) { if (typeof SFX !== 'undefined') SFX.boss(); return; }
+  for (let i = 0; i < count; i++) {
+    const ang = Math.random() * Math.PI * 2, r = 1.6;
+    const x = en.mesh.position.x + Math.cos(ang) * r, z = en.mesh.position.z + Math.sin(ang) * r;
+    if (isSolid(x, z)) continue;
+    const size = 0.45;
+    const mesh = makeMonkeyMesh(size, new THREE.Color(0x7a4a24));
+    mesh.position.set(x, size, z); E.scene.add(mesh);
+    E.enemies.push({ mesh, hp: 3, maxhp: 3, size, boss: false, species: 'monkeys', neutral: false, angered: false, speed: 0.9 * 2.2, dir: new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize(), wander: Math.random() * 2, dmg: 8 });
+    spawnParticles(mesh.position, new THREE.Color(0x88ff44), 10);
+  }
+  showToast('🦍 Reinforcements!', 'The Jungle King calls in monkeys!');
+}
+
+function spawnBossShot(pos, vel, color, dmg, emis, radius) {
+  const r = radius || 0.22;
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10),
+    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: emis == null ? 1 : emis, roughness: 0.6 }));
+  mesh.position.copy(pos); mesh.position.y = Math.max(0.8, r + 0.2); mesh.castShadow = true;
+  E.scene.add(mesh);
+  E.bossShots.push({ mesh, vel, dmg, life: 3, hitR: r + 0.4 });
+}
+
+function updateBossShots(dt) {
+  if (!E.bossShots) return;
+  for (let i = E.bossShots.length - 1; i >= 0; i--) {
+    const s = E.bossShots[i];
+    s.life -= dt;
+    // Ink cloud: expand and fade, damaging once if it reaches the player
+    if (s.cloud) {
+      s.t += dt / s.dur;
+      const t = Math.min(1, s.t);
+      const r = 0.5 + t * s.maxR;
+      s.mesh.scale.setScalar(r / 0.5);
+      s.mesh.material.opacity = 0.85 * (1 - t * 0.7);
+      if (!s.hitDone && t > 0.1 && t < 0.6 && E.player.position.distanceTo(new THREE.Vector3(s.target.x, 0.8, s.target.z)) < r) { hurtPlayer(s.dmg); s.hitDone = true; }
+      if (t >= 1 || s.life <= 0) { E.scene.remove(s.mesh); E.bossShots.splice(i, 1); }
+      continue;
+    }
+    // Lobbed shot: arc up and crash down on the target spot
+    if (s.arc) {
+      s.t += dt / s.dur;
+      const t = Math.min(1, s.t);
+      s.mesh.position.x = s.start.x + (s.target.x - s.start.x) * t;
+      s.mesh.position.z = s.start.z + (s.target.z - s.start.z) * t;
+      s.mesh.position.y = Math.sin(t * Math.PI) * s.arcH + s.r;
+      s.mesh.rotation.x += dt * 5;
+      if (s.shadow) s.shadow.material.opacity = 0.3 + t * 0.35;
+      if (t >= 1 || s.life <= 0) {
+        spawnParticles(s.mesh.position, s.mesh.material.color, 24);
+        if (typeof SFX !== 'undefined') SFX.slam();
+        if (E.player.position.distanceTo(new THREE.Vector3(s.target.x, 0, s.target.z)) < s.aoeR) hurtPlayer(s.dmg);
+        if (s.shadow) E.scene.remove(s.shadow);
+        E.scene.remove(s.mesh); E.bossShots.splice(i, 1);
+      }
+      continue;
+    }
+    s.mesh.position.x += s.vel.x * dt; s.mesh.position.z += s.vel.z * dt;
+    s.mesh.rotation.y += dt * 6;
+    let dead = s.life <= 0 || isSolid(s.mesh.position.x, s.mesh.position.z);
+    if (!dead && E.player.position.distanceTo(s.mesh.position) < (s.hitR || 0.6)) { hurtPlayer(s.dmg); dead = true; }
+    if (dead) { spawnParticles(s.mesh.position, s.mesh.material.color, 6); E.scene.remove(s.mesh); E.bossShots.splice(i, 1); }
+  }
+}
+
+function updateBossBar() {
+  const bar = document.getElementById('bossBar'); if (!bar) return;
+  let boss = null;
+  if (E.enemies) for (const en of E.enemies) { if (en.boss && E.player && E.player.position.distanceTo(en.mesh.position) < 13) { boss = en; break; } }
+  if (!boss) { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+  document.getElementById('bossName').textContent = BOSS_NAME[boss.species] || 'Boss';
+  document.getElementById('bossFill').style.width = (Math.max(0, boss.hp / boss.maxhp) * 100) + '%';
+}
+function hideBossBar() { const bar = document.getElementById('bossBar'); if (bar) bar.style.display = 'none'; }
