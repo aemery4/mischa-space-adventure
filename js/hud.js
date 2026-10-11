@@ -59,7 +59,7 @@ const RECIPES=[
   {id:'medkit',name:'💊 Medkit',desc:'+50 HP (one-use).',cost:{plant:3,crystal:1}},
   {id:'scanner',name:'📡 Scanner',desc:'Double gather range.',cost:{crystal:3,rock:1}},
   {id:'magnet',name:'🧲 Fuel Magnet',desc:'Auto-collect fuel.',cost:{rock:2,crystal:2}},
-  {id:'armor',name:'🦺 Space Armor',desc:'Max HP→150, +25 HP.',cost:{rock:4,plant:2}},
+  {id:'armor',name:'🦺 Space Armor',desc:'+50 max HP, +25 HP.',cost:{rock:4,plant:2}},
 ];
 
 // ════════════════════════════════════════

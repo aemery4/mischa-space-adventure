@@ -23,6 +23,7 @@ Once GitHub Pages is on, it's live at:
   boss is beaten (green needle).
 - `js/healthbar3d.js` — **Mischa's Health Bar!** A ❤️ bar floats above your
   astronaut: green → yellow → red as you get hurt, and it flashes when you're hit.
+  You start with **200 health** — change `BASE_MAX_HP` in `js/globals.js` for more!
 - `js/horses3d.js` — **Mischa's Wild Horses!** 🐴 Find them in the jungle forest,
   walk up and press **R** (or tap the Ride button) to ride. You go almost twice as
   fast! The first ride tames the horse — it gets a name and a saddle. Press R

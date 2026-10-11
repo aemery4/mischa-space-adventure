@@ -17,7 +17,7 @@ function renderCraft(){
     if(!owned&&can) d.onclick=()=>{
       Object.entries(r.cost).forEach(([k,v])=>save.resources[k]-=v);
       if(r.id==='medkit'){save.hp=Math.min(save.maxHp,save.hp+50);}
-      else{if(!save.items.includes(r.id))save.items.push(r.id);if(r.id==='armor'){save.maxHp=150;save.hp=Math.min(save.hp+25,150);}}
+      else{if(!save.items.includes(r.id))save.items.push(r.id);if(r.id==='armor'){save.maxHp+=50;save.hp=Math.min(save.hp+25,save.maxHp);}}
       persist();updateHUD();renderCraft();
     };
     g.appendChild(d);
