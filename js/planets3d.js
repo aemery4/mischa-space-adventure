@@ -49,7 +49,8 @@ const PLANETS_3D = {
     // 👑 Monkey King's temple in the middle. Tiles: 20 = temple stone,
     // 21 = hedge, 22 = dirt trail, 23 = forest tree.
     maze: true,
-    mazeEnemies: ['monkeys', 'monkeys', 'monkeys', 'panthers', 'lizards']
+    mazeEnemies: ['monkeys', 'monkeys', 'monkeys', 'panthers', 'lizards'],
+    wildHorses: 5   // 🐴 wild horses roam the forest (js/horses3d.js)
   },
   3: {
     name: 'Tundra Frigia', emoji: '❄️', tile: 26, cols: 48, rows: 28,

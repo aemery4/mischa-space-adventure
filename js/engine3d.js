@@ -66,7 +66,7 @@ function launchPlanet3D(n) {
   animate();
   const intro = {
     1: 'Area 51! Gather 10 ⚡ fuel, then reach the glowing saucer to leave.',
-    2: 'The Jungle Maze! You start in the village (a safe zone) — press Space by a merchant 🔶 to trade. Follow the dirt trail north through the forest 🌲 to the torch-lit maze entrance 🔥, then find your way through the GIANT hedge maze. Grab 15 ⚡ fuel and watch out for monkeys! The 👑 Monkey King rules from his temple in the very MIDDLE of the maze. Beat him to unlock the rocket!',
+    2: 'The Jungle Maze! You start in the village (a safe zone) — press Space by a merchant 🔶 to trade. Follow the dirt trail north through the forest 🌲 (find a wild horse 🐴 and press R to ride it!) to the torch-lit maze entrance 🔥, then find your way through the GIANT hedge maze. Grab 15 ⚡ fuel and watch out for monkeys! The 👑 Monkey King rules from his temple in the very MIDDLE of the maze. Beat him to unlock the rocket!',
     3: 'Tundra Frigia! 20 ⚡ fuel needed. The cold is full of teeth. Warm up at the camp (the platform — a safe zone) and press Space by a trader 🔶. Reach the rocket to escape.',
     4: 'Aquatic Neptuna! Dive for 25 ⚡ fuel and dodge the deep things. Friendly seahorses 🐴 (with a 🔶 marker) will share tips — swim up and press Space. Reach the rocket to escape.',
     5: 'Home Base! Spend 🪙 Space Coins to build your planet. Press 🔨 Build [B], then click a grass tile to place a hut, farm, shop, arcade, landing pad or fountain. Each 🏠 hut becomes a home for an alien visitor 👽 — build more to attract more! Walk up to a building or alien and press Space.'
@@ -221,7 +221,7 @@ function placeBossAtTemple() {
 function buildWorld(n, cfg) {
   let data = cfg.build(cfg.tile, cfg.cols, cfg.rows);
   E.spawnTile = null; E.temple = null; E.bossDown = false; E.fuelNagged = false;
-  E.forest = null; E.mazeGate = null;
+  E.forest = null; E.mazeGate = null; E.horses = []; E.riding = null;
   if (cfg.maze) {
     data = buildMazeWorld(cfg, data);   // giant hedge maze (js/maze3d.js)
   } else {
@@ -284,6 +284,7 @@ function buildWorld(n, cfg) {
   if (cfg.volcano) addVolcano(scene);
   if (E.temple) { addTemple(scene); placeBossAtTemple(); }
   if (cfg.maze) { addMazeHedges(scene); addForestTrees(scene); addMazeEntrance(scene); crownMonkeyKing(); placeExitInArena(); }
+  if (cfg.wildHorses && typeof spawnWildHorses === 'function') spawnWildHorses(cfg, scene);
   if (typeof spawnPet === 'function') spawnPet(scene);
   E.merchants = []; E.campfire = null; E.homeMeshes = []; E.seahorses = []; E.bossShots = []; E.dying = [];
   if (typeof hideBossBar === 'function') hideBossBar();
@@ -1576,6 +1577,7 @@ function animate() {
   E.time += dt;
   if (!gamePaused) {
     updatePlayer(dt);
+    if (typeof updateHorses === 'function') updateHorses(dt);
     updateEnemies(dt);
     updateResources(dt);
     updateParticles(dt);
@@ -1615,6 +1617,7 @@ function updatePlayer(dt) {
   let mag = 1;
   if (E.moveVec && (E.moveVec.x || E.moveVec.z)) { mx = E.moveVec.x; mz = E.moveVec.z; mag = Math.min(1, Math.hypot(mx, mz)); } // touch joystick
   let speed = save.items.includes('boots') ? 6.5 : 4.8;
+  if (E.riding && typeof HORSE_SPEED !== 'undefined') speed *= HORSE_SPEED; // galloping on a horse!
   if (E.cfg.slow.includes(tileAt(E.player.position.x, E.player.position.z))) speed *= 0.5;
   const p = E.player.position;
   if (mx || mz) {
