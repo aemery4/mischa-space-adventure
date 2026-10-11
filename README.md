@@ -17,6 +17,9 @@ Once GitHub Pages is on, it's live at:
 - `js/cutscene3d.js` — the little story movies between levels.
 - `js/maze3d.js` — **Mischa's Giant Jungle Maze!** Builds the hedge maze, the
   village you start in, and the 👑 Monkey King's temple in the middle.
+- `js/compass3d.js` — **Mischa's Boss Compass!** The 🧭 in the top-right corner
+  points to the boss on every level (red needle), then to the 🚀 rocket once the
+  boss is beaten (green needle).
 
 ## The Jungle Maze 🌴👑
 Planet 2 is a giant hedge maze. Start in the village (bottom-left), find 15 ⚡

@@ -1588,6 +1588,7 @@ function animate() {
     if (typeof updateSeahorses === 'function') updateSeahorses(dt);
     if (typeof updateBossShots === 'function') updateBossShots(dt);
     if (typeof updateBossBar === 'function') updateBossBar();
+    if (typeof updateCompass === 'function') updateCompass();
     if (E.hurtCd > 0) E.hurtCd -= dt;
   }
   updateCamera(dt);
