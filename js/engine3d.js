@@ -1594,6 +1594,7 @@ function animate() {
     if (E.hurtCd > 0) E.hurtCd -= dt;
   }
   updateCamera(dt);
+  if (typeof updatePlayerHealthBar === 'function') updatePlayerHealthBar();
   E.renderer.render(E.scene, E.camera);
 }
 

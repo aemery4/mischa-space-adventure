@@ -21,6 +21,8 @@ Once GitHub Pages is on, it's live at:
 - `js/compass3d.js` — **Mischa's Boss Compass!** The 🧭 in the top-right corner
   points to the boss on every level (red needle), then to the 🚀 rocket once the
   boss is beaten (green needle).
+- `js/healthbar3d.js` — **Mischa's Health Bar!** A ❤️ bar floats above your
+  astronaut: green → yellow → red as you get hurt, and it flashes when you're hit.
 
 ## The Jungle Maze 🌴👑
 Planet 2 is an adventure in three parts:
