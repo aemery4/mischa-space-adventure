@@ -970,7 +970,7 @@ function openObservatory() {
   const grid = document.getElementById('shopGrid');
   grid.innerHTML = '';
   const worlds = [
-    { n: 1, emoji: '🌍', name: 'Earth — Area 51' }, { n: 2, emoji: '🌴', name: 'Jungle Zorbax' },
+    { n: 1, emoji: '🌍', name: 'Earth — Area 51' }, { n: 2, emoji: '🌴', name: 'Jungle Maze' },
     { n: 3, emoji: '❄️', name: 'Tundra Frigia' }, { n: 4, emoji: '🌊', name: 'Aquatic Neptuna' }
   ];
   worlds.forEach(p => {

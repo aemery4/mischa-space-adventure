@@ -8,7 +8,7 @@ if (typeof persistSave === 'undefined') { window.persistSave = function () { per
 
 const PLANET_META = [
   { n: 1, emoji: '🌍', name: 'Earth — Area 51' },
-  { n: 2, emoji: '🌴', name: 'Jungle Zorbax' },
+  { n: 2, emoji: '🌴', name: 'Jungle Maze' },
   { n: 3, emoji: '❄️', name: 'Tundra Frigia' },
   { n: 4, emoji: '🌊', name: 'Aquatic Neptuna' },
   { n: 6, emoji: '🌋', name: 'Volcano Magmara' }
@@ -75,7 +75,7 @@ function startPlanet(n) {
   document.getElementById('bh').style.display = n === 2 ? '' : 'none';
   const fuelMax = { 1: 10, 2: 15, 3: 20, 4: 25, 5: 0, 6: 30 }[n];
   document.getElementById('fuelMax').textContent = fuelMax;
-  const labels = { 1: 'Earth — Area 51', 2: 'Jungle — Zorbax', 3: 'Tundra Frigia', 4: 'Aquatic Neptuna', 5: 'Home Planet', 6: 'Volcano Magmara' };
+  const labels = { 1: 'Earth — Area 51', 2: 'Jungle Maze — Zorbax', 3: 'Tundra Frigia', 4: 'Aquatic Neptuna', 5: 'Home Planet', 6: 'Volcano Magmara' };
   document.getElementById('planet').textContent = labels[n] || 'Unknown';
   save.currentPlanet = n;
   if (n !== 5) save.resources.fuel = 0;

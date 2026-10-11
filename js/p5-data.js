@@ -41,7 +41,7 @@ const P5_BUILDINGS = [
 // Trophy Hall exhibits — one per planet, earned by clearing that planet.
 const P5_TROPHIES = [
   { planet: 1, emoji: '🛸', name: 'Area 51 Escape', desc: 'Slipped past the guards and out of the secret desert base.' },
-  { planet: 2, emoji: '🦍', name: 'Jungle King',    desc: 'Toppled the mighty ape boss of Zorbax.' },
+  { planet: 2, emoji: '🦍', name: 'Monkey King',    desc: 'Dethroned the Monkey King of the Jungle Maze.' },
   { planet: 3, emoji: '⛄', name: 'Frost Yeti',      desc: 'Bested the shaggy horned terror of the tundra.' },
   { planet: 4, emoji: '🐙', name: 'Deep Octopus',    desc: 'Vanquished the ink-spewing horror of Neptuna.' },
   { planet: 6, emoji: '🌋', name: 'Magma Titan',     desc: 'Extinguished the molten colossus of Magmara.' },

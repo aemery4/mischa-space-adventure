@@ -179,7 +179,7 @@ function buildP2Data(TILE, COLS, ROWS) {
       shop:[
         {id:'map_reveal',  name:'Reveal Map',     emoji:'🗺️', desc:'Reveals the hidden jungle map',cost:{crystal:2},  effect:'map_reveal'},
         {id:'elder_boots', name:'Speed Blessing',  emoji:'👟', desc:'Grants Rocket Boots (permanent speed)',cost:{banana:3,plant:3},effect:'elder_boots'},
-        {id:'lore_scroll', name:'Lore Scroll',    emoji:'📜', desc:'Reveals the Jungle King location',cost:{banana:1}, effect:'lore_scroll'},
+        {id:'lore_scroll', name:'Lore Scroll',    emoji:'📜', desc:'Reveals the Monkey King location',cost:{banana:1}, effect:'lore_scroll'},
         {id:'wizard_skin_buy', name:"Wizard Skin", emoji:'🧙', desc:'Unlocks the Wizard skin (check Skin menu)',cost:{banana:5,crystal:4,plant:3}, effect:'wizard_skin_buy'},
         {id:'blessing',    name:"Elder's Blessing",emoji:'✨',desc:'Full heal + 3 extra lives',    cost:{banana:6,crystal:4,plant:4},effect:'blessing'},
         {id:'coin_maxhp',  name:'Cosmic Vigor',    emoji:'🪙',desc:'+50 max HP permanently',     cost:{coins:100}, effect:'coin_maxhp'},

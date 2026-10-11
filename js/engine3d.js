@@ -66,7 +66,7 @@ function launchPlanet3D(n) {
   animate();
   const intro = {
     1: 'Area 51! Gather 10 ⚡ fuel, then reach the glowing saucer to leave.',
-    2: 'Jungle Zorbax! Grab 15 ⚡ fuel and watch for beasts. Visit the Treetop Village (the wooden platform — a safe zone) and press Space by a merchant 🔶 to trade. Reach the rocket to escape.',
+    2: 'The Jungle Maze! You start in the village (a safe zone) — press Space by a merchant 🔶 to trade. Find your way through the GIANT hedge maze, grab 15 ⚡ fuel, and watch out for monkeys! The 👑 Monkey King rules from his temple in the very MIDDLE of the maze. Beat him to unlock the rocket!',
     3: 'Tundra Frigia! 20 ⚡ fuel needed. The cold is full of teeth. Warm up at the camp (the platform — a safe zone) and press Space by a trader 🔶. Reach the rocket to escape.',
     4: 'Aquatic Neptuna! Dive for 25 ⚡ fuel and dodge the deep things. Friendly seahorses 🐴 (with a 🔶 marker) will share tips — swim up and press Space. Reach the rocket to escape.',
     5: 'Home Base! Spend 🪙 Space Coins to build your planet. Press 🔨 Build [B], then click a grass tile to place a hut, farm, shop, arcade, landing pad or fountain. Each 🏠 hut becomes a home for an alien visitor 👽 — build more to attract more! Walk up to a building or alien and press Space.'
@@ -99,6 +99,13 @@ function stopEngine() {
   E.exit = null; E.exitActive = false; E.player = null;
   E.interior = null; E.doorTiles = null; E.interiorProps = null; E.interiorExitMat = null;
   E.pet = null; E.volcano = null;
+}
+
+// Where the player starts: the maze sets E.spawnTile; other planets use cfg.spawn
+function spawnTile(cfg) {
+  if (E.spawnTile) return E.spawnTile;
+  const off = E.worldOff || 0;
+  return { x: cfg.spawn.tx + off, z: cfg.spawn.tz + off };
 }
 
 // Pad a tile map with M tiles of open floor on every side (plus a new outer
@@ -212,20 +219,24 @@ function placeBossAtTemple() {
 
 // ── World construction ─────────────────────────────────────────
 function buildWorld(n, cfg) {
-  const data = cfg.build(cfg.tile, cfg.cols, cfg.rows);
-  // Enlarge the playable area by padding with open floor + a new outer wall.
-  // Home base is left unpadded so its saved building coordinates stay valid.
-  const touch = (typeof IS_TOUCH !== 'undefined' && IS_TOUCH);
-  const grow = cfg.home ? 0
-    : (cfg.grow != null ? cfg.grow
-      : cfg.big ? (touch ? 12 : 28)   // huge worlds (e.g. Zorbax)
-        : (touch ? 4 : 8));
-  const grown = growMap(data.map, grow);
-  E.map = grown.map; E.worldOff = grown.off;
-  E.rows = E.map.length; E.cols = E.map[0].length;
-  if (cfg.wildFill) paintWild(cfg);
-  E.temple = null;
-  if (cfg.temple) stampTemple(cfg);
+  let data = cfg.build(cfg.tile, cfg.cols, cfg.rows);
+  E.spawnTile = null; E.temple = null; E.bossDown = false; E.fuelNagged = false;
+  if (cfg.maze) {
+    data = buildMazeWorld(cfg, data);   // giant hedge maze (js/maze3d.js)
+  } else {
+    // Enlarge the playable area by padding with open floor + a new outer wall.
+    // Home base is left unpadded so its saved building coordinates stay valid.
+    const touch = (typeof IS_TOUCH !== 'undefined' && IS_TOUCH);
+    const grow = cfg.home ? 0
+      : (cfg.grow != null ? cfg.grow
+        : cfg.big ? (touch ? 12 : 28)   // huge worlds
+          : (touch ? 4 : 8));
+    const grown = growMap(data.map, grow);
+    E.map = grown.map; E.worldOff = grown.off;
+    E.rows = E.map.length; E.cols = E.map[0].length;
+    if (cfg.wildFill) paintWild(cfg);
+    if (cfg.temple) stampTemple(cfg);
+  }
   const map = E.map;
 
   const scene = new THREE.Scene();
@@ -270,7 +281,8 @@ function buildWorld(n, cfg) {
   buildExit(cfg, scene);
   E.volcano = null;
   if (cfg.volcano) addVolcano(scene);
-  if (cfg.temple && E.temple) { addTemple(scene); placeBossAtTemple(); }
+  if (E.temple) { addTemple(scene); placeBossAtTemple(); }
+  if (cfg.maze) { addMazeHedges(scene); crownMonkeyKing(); placeExitInArena(); }
   if (typeof spawnPet === 'function') spawnPet(scene);
   E.merchants = []; E.campfire = null; E.homeMeshes = []; E.seahorses = []; E.bossShots = []; E.dying = [];
   if (typeof hideBossBar === 'function') hideBossBar();
@@ -431,7 +443,7 @@ function createEnemy(cfg, variant, worldX, worldZ, e, key) {
   e = e || {}; key = key || variant;
   const hp = e.hp || e.maxhp || e.maxHp || 3;
   const boss = (key === 'miniBoss' || key === 'yeti' || variant === 'octopus' || variant === 'magma' || key === 'magma');
-  const size = boss ? (key === 'yeti' ? 1.05 : variant === 'octopus' ? 0.85 : 0.95)
+  const size = boss ? (key === 'yeti' ? 1.05 : variant === 'octopus' ? 0.85 : (key === 'miniBoss' && cfg.maze) ? 1.25 : 0.95)
                     : Math.max(0.28, (e.size || 13) / 30);
   const color = e.color ? new THREE.Color(e.color)
     : new THREE.Color((cfg.enemyColors && cfg.enemyColors[variant]) || ENEMY_COLORS[variant] || 0xdd4444);
@@ -476,17 +488,22 @@ function ensureFuel(cfg, scene) {
 
 function sprinkleExtras(cfg, scene) {
   const off = E.worldOff || 0;
-  if (off <= 0) return; // home base isn't enlarged
+  if (off <= 0 && !cfg.maze) return; // home base isn't enlarged
+  const sp = spawnTile(cfg);
   const open = [];
   for (let z = 2; z < E.rows - 2; z++) for (let x = 2; x < E.cols - 2; x++) {
     const v = E.map[z][x];
     if (cfg.solid.includes(v) || cfg.damage.includes(v) || v === 7) continue;
     // keep a little breathing room around the player spawn
-    if (Math.abs(x - (cfg.spawn.tx + off)) < 3 && Math.abs(z - (cfg.spawn.tz + off)) < 3) continue;
+    if (Math.abs(x - sp.x) < 3 && Math.abs(z - sp.z) < 3) continue;
     open.push([x, z]);
   }
   if (!open.length) return;
   const pick = () => open[Math.floor(Math.random() * open.length)];
+  // In the maze, the Monkey King's throne room stays clear of random beasts
+  const t = E.temple;
+  const inThrone = (x, z) => cfg.maze && t && x >= t.x0 && x <= t.x1 && z >= t.z0 && z <= t.z1;
+  const pickPath = () => { for (let k = 0; k < 50; k++) { const s = pick(); if (!inThrone(s[0], s[1])) return s; } return pick(); };
 
   // Resources
   const rTypes = cfg.underwater ? ['crystal', 'plant', 'rock', 'fuel', 'fuel']
@@ -505,10 +522,11 @@ function sprinkleExtras(cfg, scene) {
   let pool = (cfg.enemyKeys || []).filter(k => k !== 'miniBoss' && k !== 'yeti' && k !== 'magma');
   if (cfg.underwater) pool = ['squid', 'piranha'];
   pool = pool.filter(k => k !== 'parrots'); // parrots are harmless collectibles
+  if (cfg.mazeEnemies) pool = cfg.mazeEnemies;
   if (pool.length) {
     const nEn = Math.round((E.cols * E.rows) / (cfg.big ? 520 : 260));
     for (let i = 0; i < nEn; i++) {
-      const [x, z] = pick();
+      const [x, z] = pickPath();
       const variant = pool[Math.floor(Math.random() * pool.length)];
       createEnemy(cfg, variant, x + 0.5, z + 0.5, { speed: 0.6 + Math.random() * 0.5, size: 12 + Math.random() * 4 }, variant);
     }
@@ -1133,8 +1151,8 @@ function buildPlayer(cfg, scene) {
   g.userData.antTip = antTip;
   applySkinAdornments(g, save.skin); // add the chosen skin's animal features
 
-  const spawn = cfg.spawn, off = E.worldOff || 0;
-  g.position.set(spawn.tx + off + 0.5, 0, spawn.tz + off + 0.5);
+  const sp = spawnTile(cfg);
+  g.position.set(sp.x + 0.5, 0, sp.z + 0.5);
   scene.add(g);
   E.player = g;
   E.faceAngle = 0;
@@ -1430,6 +1448,9 @@ function hitEnemy(i) {
       const rank = wins >= 3 ? ' 🥇 Gold trophy!' : wins === 2 ? ' 🥈 Silver trophy!' : ' 🥉 Bronze trophy!';
       showToast('🏆 Boss Defeated!', (BOSS_NAME[en.species] || 'The boss') + ' is vanquished! +100 🪙\n' + 'Defeated ' + wins + '× —' + rank);
       if (typeof hideBossBar === 'function') hideBossBar();
+      E.bossDown = true;
+      // Maze: beating the Monkey King unlocks the rocket in his throne room
+      if (E.cfg.maze) setTimeout(() => { if (E.cfg && E.cfg.maze && E.bossDown) mazeBossBeaten(); }, 3500);
     }
     startEnemyDeath(en);
     E.enemies.splice(i, 1);
@@ -1473,10 +1494,24 @@ function spawnParticles(pos, color, n) {
 function checkExitReady() {
   if (!E.cfg.fuelTarget) return;
   if ((save.resources.fuel || 0) >= E.cfg.fuelTarget && !E.exitActive) {
+    // Maze: the rocket stays locked until the Monkey King is beaten
+    if (E.cfg.maze && !E.bossDown) {
+      if (!E.fuelNagged) {
+        E.fuelNagged = true;
+        showToast('⚡ Fuel tank full!', 'Now find the 👑 Monkey King in the middle of the maze and beat him to unlock the rocket!');
+      }
+      return;
+    }
     E.exitActive = true;
     if (typeof SFX !== 'undefined') SFX.powerup();
     showToast('🚀 Rocket ready!', 'You have enough fuel. Reach the rocket to blast off.');
   }
+}
+
+function mazeBossBeaten() {
+  const need = (E.cfg.fuelTarget || 0) - (save.resources.fuel || 0);
+  if (need > 0) showToast('👑 Monkey King defeated!', 'Collect ' + need + ' more ⚡ fuel in the maze, then come back to the rocket in his throne room!');
+  else checkExitReady();
 }
 
 function planetCleared() {
@@ -1734,9 +1769,12 @@ function updateCamera(dt) {
     const d = Math.hypot(p.x - v.x, p.z - v.z);
     near = Math.max(0, Math.min(1, (38 - d) / 19)); // 0 when far (d>=38), 1 up close (d<=19)
   }
-  const target = new THREE.Vector3(p.x, 6.5 + near * 0.5, p.z + 7.5 + near * 1.5);
+  // The maze uses a higher, steeper camera so hedges never hide the player
+  const maze = !!(E.cfg && E.cfg.maze);
+  const target = maze ? new THREE.Vector3(p.x, 10, p.z + 6.5)
+    : new THREE.Vector3(p.x, 6.5 + near * 0.5, p.z + 7.5 + near * 1.5);
   E.camera.position.lerp(target, 1 - Math.pow(0.001, dt));
-  E.camera.lookAt(p.x, 0.6 + near * 3.9, p.z - 1.5);
+  E.camera.lookAt(p.x, 0.6 + near * 3.9, p.z - (maze ? 1 : 1.5));
   const wantFov = 52 + near * 6;
   if (Math.abs(E.camera.fov - wantFov) > 0.03) { E.camera.fov = wantFov; E.camera.updateProjectionMatrix(); }
 }

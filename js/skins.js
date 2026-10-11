@@ -151,7 +151,7 @@ const ALL_SKINS = [
     }
   },
   // EARNED by gameplay
-  { id:'monkey_skin', name:'Monkey',    emoji:'🐒', how:'Defeat the Jungle King',
+  { id:'monkey_skin', name:'Monkey',    emoji:'🐒', how:'Defeat the Monkey King',
     badge:'earn', unlock:'boss_jungle',
     draw:(ctx,px,py,sz)=>{
       ctx.shadowColor='#a64'; ctx.shadowBlur=10;

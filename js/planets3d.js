@@ -24,10 +24,10 @@ const PLANETS_3D = {
     enemyKind: 'alien'
   },
   2: {
-    name: 'Jungle — Zorbax', emoji: '🌴', tile: 26, cols: 48, rows: 28,
+    name: 'Jungle Maze — Zorbax', emoji: '🌴', tile: 26, cols: 48, rows: 28,
     build: (T, C, R) => buildP2Data(T, C, R),
     enemyKeys: ['monkeys', 'golems', 'lizards', 'panthers', 'parrots', 'miniBoss'],
-    solid: [1, 3], slow: [2, 6], damage: [8],
+    solid: [1, 3, 20, 21], slow: [2, 6], damage: [8],
     fuelTarget: 15,
     spawn: { tx: 2, tz: 2 },
     sky: 0x06170a, fog: [0x06170a, 16, 46],
@@ -44,11 +44,10 @@ const PLANETS_3D = {
     },
     ambient: 0x25502a, sun: 0xd8ffb0, sunPos: [6, 14, 4],
     enemyKind: 'beast', village: true,
-    // Huge explorable jungle: pad the world out and fill the new ring with
-    // scattered wild terrain (tree=solid, bush/swamp=slow, vine=deco).
-    big: true, wildFill: [[3, 0.13], [2, 0.10], [4, 0.03], [6, 0.04]],
-    // The Jungle King waits inside a temple deep in the jungle.
-    temple: true
+    // Mischa's GIANT JUNGLE MAZE (js/maze3d.js): start in the village, find
+    // the 👑 Monkey King's temple in the middle. Tile 21 = hedge, 20 = temple stone.
+    maze: true,
+    mazeEnemies: ['monkeys', 'monkeys', 'monkeys', 'panthers', 'lizards']
   },
   3: {
     name: 'Tundra Frigia', emoji: '❄️', tile: 26, cols: 48, rows: 28,

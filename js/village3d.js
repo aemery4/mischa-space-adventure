@@ -282,7 +282,7 @@ function executeP2ShopEffect(effectId) {
     case 'rocket_boost': if (!save.items.includes('rocket_upgrade')) { save.items.push('rocket_upgrade'); updateHUD(); persist(); } break;
     case 'map_reveal': showToast('🗺️ Map', 'The jungle layout is clear in your mind now.'); break;
     case 'elder_boots': if (!save.items.includes('boots')) { save.items.push('boots'); updateHUD(); persist(); } break;
-    case 'lore_scroll': showMsg('📜 Ancient Lore', 'The Jungle King slumbers deep in the eastern ruins.\n\nDefeat the beasts and gather fuel to earn passage onward!'); break;
+    case 'lore_scroll': showMsg('📜 Ancient Lore', 'The Monkey King rules from his stone temple in the very middle of the great maze.\n\nBeat him and gather fuel to earn passage onward!'); break;
     case 'wizard_skin_buy':
       if (!save.unlockedSkins) save.unlockedSkins = [];
       if (!save.unlockedSkins.includes('wizard')) { save.unlockedSkins.push('wizard'); persist(); if (typeof showSkinUnlockToast === 'function') showSkinUnlockToast('wizard'); else showToast('🧙 Unlocked', 'Wizard skin available in the Skin menu.'); }

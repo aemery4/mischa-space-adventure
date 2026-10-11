@@ -5,10 +5,15 @@
 // Called from the engine's enemy update + main loop.
 // ════════════════════════════════════════
 
-const BOSS_NAME = { miniBoss: '🦍 Jungle King', yeti: '⛄ Frost Yeti', octopus: '🐙 Deep Octopus', magma: '🌋 Magma Titan' };
+const BOSS_NAME = { miniBoss: '👑 Monkey King', yeti: '⛄ Frost Yeti', octopus: '🐙 Deep Octopus', magma: '🌋 Magma Titan' };
 
 function bossBlocked(x, z) {
-  return isSolid(x, z) || (E.cfg && E.cfg.village && typeof tileAt === 'function' && tileAt(x, z) === 7); // village/camp is a safe zone
+  if (isSolid(x, z)) return true;
+  if (E.cfg && E.cfg.village && typeof tileAt === 'function' && tileAt(x, z) === 7) return true; // village/camp is a safe zone
+  // The Monkey King never leaves his throne room in the maze
+  const t = E.temple;
+  if (E.cfg && E.cfg.maze && t && (x < t.x0 + 1 || x >= t.x1 || z < t.z0 + 1 || z >= t.z1)) return true;
+  return false;
 }
 
 // Per-boss AI, replaces normal movement for boss enemies
@@ -253,7 +258,7 @@ function bossSummon(en, count) {
     E.enemies.push({ mesh, hp: 3, maxhp: 3, size, boss: false, species: 'monkeys', neutral: false, angered: false, speed: 0.9 * 2.2, dir: new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).normalize(), wander: Math.random() * 2, dmg: 8 });
     spawnParticles(mesh.position, new THREE.Color(0x88ff44), 10);
   }
-  showToast('🦍 Reinforcements!', 'The Jungle King calls in monkeys!');
+  showToast('🦍 Reinforcements!', 'The Monkey King calls in his monkeys!');
 }
 
 function spawnBossShot(pos, vel, color, dmg, emis, radius) {

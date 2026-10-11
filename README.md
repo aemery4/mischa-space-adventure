@@ -15,6 +15,18 @@ Once GitHub Pages is on, it's live at:
 - `js/engine3d.js` — the "engine" that draws the 3D world and runs the game.
 - `js/skins.js` — the different hero looks you can unlock.
 - `js/cutscene3d.js` — the little story movies between levels.
+- `js/maze3d.js` — **Mischa's Giant Jungle Maze!** Builds the hedge maze, the
+  village you start in, and the 👑 Monkey King's temple in the middle.
+
+## The Jungle Maze 🌴👑
+Planet 2 is a giant hedge maze. Start in the village (bottom-left), find 15 ⚡
+fuel, and fight your way to the **Monkey King** in the middle. Beat him to
+unlock the rocket in his throne room!
+
+Fun numbers to change at the top of `js/maze3d.js`:
+- `MAZE_CELLS` — how big the maze is (try `[30, 24]` for an even bigger one!)
+- `HEDGE_HEIGHT` — how tall the hedges are
+- `MAZE_LOOPS` — `0` = only one way through, `0.2` = lots of shortcuts
 
 ## Fun first things to try changing
 1. **Colors of a planet** — open `js/planets3d.js` and change a `sky`, `ground`,
