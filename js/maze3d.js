@@ -12,13 +12,17 @@
 //   MAZE_CELLS    — how big the maze is (rooms wide, rooms tall)
 //   HEDGE_HEIGHT  — how tall the hedge walls are
 //   MAZE_LOOPS    — chance of extra shortcuts (0 = one true path, 0.2 = lots)
+//   MAZE_DEAD_END_FIX — how many dead ends get opened up (0 = none = HARD,
+//                       1 = all of them = EASY)
 //   FOREST_DEPTH  — how far you hike through the forest (in tiles)
 //   FOREST_TREES  — how thick the forest is (0.1 = sparse, 0.4 = super thick)
 // ════════════════════════════════════════════════════════════════
 
-const MAZE_CELLS = { desktop: [24, 18], touch: [16, 12] };
+// Mischa made the maze easier: a bit smaller, more shortcuts, few dead ends
+const MAZE_CELLS = { desktop: [20, 14], touch: [14, 10] };
 const MAZE_PITCH = 4;        // 3-tile-wide paths + 1-tile hedge
-const MAZE_LOOPS = 0.06;
+const MAZE_LOOPS = 0.15;
+const MAZE_DEAD_END_FIX = 0.85;
 const HEDGE_HEIGHT = 1.8;
 const FOREST_DEPTH = { desktop: 34, touch: 24 };
 const FOREST_TREES = 0.28;
@@ -73,6 +77,19 @@ function buildMazeWorld(cfg, data) {
     const [dx, dy] = DIRS[rnd(2) * 2]; // right or down
     const nx = cx + dx, ny = cy + dy;
     if (nx < CW && ny < CH && !inArena(nx, ny)) knock(cx, cy, dx, dy);
+  }
+  // Open up most dead ends (a room with only one way in) into a neighbour,
+  // so you don't keep getting trapped — dead ends are what make mazes hard
+  const isOpen = (cx, cy, dx, dy) => dx
+    ? map[cy * P + 2][(dx > 0 ? cx + 1 : cx) * P] !== HEDGE
+    : map[(dy > 0 ? cy + 1 : cy) * P][cx * P + 2] !== HEDGE;
+  const okCell = (cx, cy) => cx >= 0 && cy >= 0 && cx < CW && cy < CH && !inArena(cx, cy);
+  for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) {
+    if (inArena(cx, cy)) continue;
+    const exits = DIRS.filter(([dx, dy]) => okCell(cx + dx, cy + dy) && isOpen(cx, cy, dx, dy)).length;
+    if (exits !== 1 || Math.random() > MAZE_DEAD_END_FIX) continue;
+    const closed = DIRS.filter(([dx, dy]) => okCell(cx + dx, cy + dy) && !isOpen(cx, cy, dx, dy));
+    if (closed.length) { const [dx, dy] = closed[rnd(closed.length)]; knock(cx, cy, dx, dy); }
   }
 
   // Throne room: stone walls (tile 20) with one gate on the south side,

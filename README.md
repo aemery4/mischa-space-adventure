@@ -44,6 +44,7 @@ Fun numbers to change at the top of `js/maze3d.js`:
 - `MAZE_CELLS` — how big the maze is (try `[30, 24]` for an even bigger one!)
 - `HEDGE_HEIGHT` — how tall the hedges are
 - `MAZE_LOOPS` — `0` = only one way through, `0.2` = lots of shortcuts
+- `MAZE_DEAD_END_FIX` — `0` = lots of dead ends (HARD), `1` = no dead ends (EASY)
 - `FOREST_DEPTH` — how long the hike through the forest is
 - `FOREST_TREES` — how thick the forest is (`0.1` = sparse, `0.4` = super thick)
 
