@@ -66,7 +66,7 @@ function launchPlanet3D(n) {
   animate();
   const intro = {
     1: 'Area 51! Gather 10 ⚡ fuel, then reach the glowing saucer to leave.',
-    2: 'The Jungle Maze! You start in the village (a safe zone) — press Space by a merchant 🔶 to trade. Find your way through the GIANT hedge maze, grab 15 ⚡ fuel, and watch out for monkeys! The 👑 Monkey King rules from his temple in the very MIDDLE of the maze. Beat him to unlock the rocket!',
+    2: 'The Jungle Maze! You start in the village (a safe zone) — press Space by a merchant 🔶 to trade. Follow the dirt trail north through the forest 🌲 to the torch-lit maze entrance 🔥, then find your way through the GIANT hedge maze. Grab 15 ⚡ fuel and watch out for monkeys! The 👑 Monkey King rules from his temple in the very MIDDLE of the maze. Beat him to unlock the rocket!',
     3: 'Tundra Frigia! 20 ⚡ fuel needed. The cold is full of teeth. Warm up at the camp (the platform — a safe zone) and press Space by a trader 🔶. Reach the rocket to escape.',
     4: 'Aquatic Neptuna! Dive for 25 ⚡ fuel and dodge the deep things. Friendly seahorses 🐴 (with a 🔶 marker) will share tips — swim up and press Space. Reach the rocket to escape.',
     5: 'Home Base! Spend 🪙 Space Coins to build your planet. Press 🔨 Build [B], then click a grass tile to place a hut, farm, shop, arcade, landing pad or fountain. Each 🏠 hut becomes a home for an alien visitor 👽 — build more to attract more! Walk up to a building or alien and press Space.'
@@ -221,6 +221,7 @@ function placeBossAtTemple() {
 function buildWorld(n, cfg) {
   let data = cfg.build(cfg.tile, cfg.cols, cfg.rows);
   E.spawnTile = null; E.temple = null; E.bossDown = false; E.fuelNagged = false;
+  E.forest = null; E.mazeGate = null;
   if (cfg.maze) {
     data = buildMazeWorld(cfg, data);   // giant hedge maze (js/maze3d.js)
   } else {
@@ -282,7 +283,7 @@ function buildWorld(n, cfg) {
   E.volcano = null;
   if (cfg.volcano) addVolcano(scene);
   if (E.temple) { addTemple(scene); placeBossAtTemple(); }
-  if (cfg.maze) { addMazeHedges(scene); crownMonkeyKing(); placeExitInArena(); }
+  if (cfg.maze) { addMazeHedges(scene); addForestTrees(scene); addMazeEntrance(scene); crownMonkeyKing(); placeExitInArena(); }
   if (typeof spawnPet === 'function') spawnPet(scene);
   E.merchants = []; E.campfire = null; E.homeMeshes = []; E.seahorses = []; E.bossShots = []; E.dying = [];
   if (typeof hideBossBar === 'function') hideBossBar();
@@ -1589,6 +1590,7 @@ function animate() {
     if (typeof updateBossShots === 'function') updateBossShots(dt);
     if (typeof updateBossBar === 'function') updateBossBar();
     if (typeof updateCompass === 'function') updateCompass();
+    if (E.forest && typeof updateForestCutaway === 'function') updateForestCutaway();
     if (E.hurtCd > 0) E.hurtCd -= dt;
   }
   updateCamera(dt);

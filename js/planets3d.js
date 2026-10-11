@@ -27,7 +27,7 @@ const PLANETS_3D = {
     name: 'Jungle Maze — Zorbax', emoji: '🌴', tile: 26, cols: 48, rows: 28,
     build: (T, C, R) => buildP2Data(T, C, R),
     enemyKeys: ['monkeys', 'golems', 'lizards', 'panthers', 'parrots', 'miniBoss'],
-    solid: [1, 3, 20, 21], slow: [2, 6], damage: [8],
+    solid: [1, 3, 20, 21, 23], slow: [2, 6], damage: [8],
     fuelTarget: 15,
     spawn: { tx: 2, tz: 2 },
     sky: 0x06170a, fog: [0x06170a, 16, 46],
@@ -40,12 +40,14 @@ const PLANETS_3D = {
       6: { kind: 'swamp', color: 0x2a3a2a, h: 0.05 },
       8: { kind: 'lava', color: 0xff5522, h: 0.05 },
       9: { kind: 'floor', color: 0x3a3630, h: 0.05 },
-      7: { kind: 'floor', color: 0x5a4a30, h: 0.05 }
+      7: { kind: 'floor', color: 0x5a4a30, h: 0.05 },
+      22: { kind: 'floor', color: 0x7a5a34, h: 0.04 }   // dirt trail through the forest
     },
     ambient: 0x25502a, sun: 0xd8ffb0, sunPos: [6, 14, 4],
     enemyKind: 'beast', village: true,
-    // Mischa's GIANT JUNGLE MAZE (js/maze3d.js): start in the village, find
-    // the 👑 Monkey King's temple in the middle. Tile 21 = hedge, 20 = temple stone.
+    // Mischa's JUNGLE (js/maze3d.js): village → forest → GIANT MAZE with the
+    // 👑 Monkey King's temple in the middle. Tiles: 20 = temple stone,
+    // 21 = hedge, 22 = dirt trail, 23 = forest tree.
     maze: true,
     mazeEnemies: ['monkeys', 'monkeys', 'monkeys', 'panthers', 'lizards']
   },

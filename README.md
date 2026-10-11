@@ -15,21 +15,29 @@ Once GitHub Pages is on, it's live at:
 - `js/engine3d.js` — the "engine" that draws the 3D world and runs the game.
 - `js/skins.js` — the different hero looks you can unlock.
 - `js/cutscene3d.js` — the little story movies between levels.
-- `js/maze3d.js` — **Mischa's Giant Jungle Maze!** Builds the hedge maze, the
-  village you start in, and the 👑 Monkey King's temple in the middle.
+- `js/maze3d.js` — **Mischa's Jungle!** Builds the village you start in, the
+  forest you hike through, the giant hedge maze, and the 👑 Monkey King's
+  temple in the middle.
 - `js/compass3d.js` — **Mischa's Boss Compass!** The 🧭 in the top-right corner
   points to the boss on every level (red needle), then to the 🚀 rocket once the
   boss is beaten (green needle).
 
 ## The Jungle Maze 🌴👑
-Planet 2 is a giant hedge maze. Start in the village (bottom-left), find 15 ⚡
-fuel, and fight your way to the **Monkey King** in the middle. Beat him to
-unlock the rocket in his throne room!
+Planet 2 is an adventure in three parts:
+1. 🏘️ Start in the **village** (bottom-left) — a safe zone with shops.
+2. 🌲 Follow the **dirt trail** north through the thick **forest**.
+3. 🔥 Go through the **torch-lit entrance** into the giant hedge **maze** and
+   find the **Monkey King** in the middle. Beat him (and grab 15 ⚡ fuel) to
+   unlock the rocket in his throne room!
+
+Trees right in front of you lose their leaves so you can always see yourself.
 
 Fun numbers to change at the top of `js/maze3d.js`:
 - `MAZE_CELLS` — how big the maze is (try `[30, 24]` for an even bigger one!)
 - `HEDGE_HEIGHT` — how tall the hedges are
 - `MAZE_LOOPS` — `0` = only one way through, `0.2` = lots of shortcuts
+- `FOREST_DEPTH` — how long the hike through the forest is
+- `FOREST_TREES` — how thick the forest is (`0.1` = sparse, `0.4` = super thick)
 
 ## Fun first things to try changing
 1. **Colors of a planet** — open `js/planets3d.js` and change a `sky`, `ground`,
